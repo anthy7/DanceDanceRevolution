@@ -8,7 +8,7 @@ var directions = ["left", "down", "up", "right"];
 
 newArrow = null;
 
-speed = 8;
+speed = 10;
 
 function setup() {
   createCanvas(400, 400);
@@ -19,11 +19,6 @@ function setup() {
   for (i = 0; i < 4; i++) {
     slideSpaces[i] = new SlideSpace(slideColours[i], i * 100, 0, 100, 400);
   }
-  left = new Arrow('left', 20, 20);
-  right = new Arrow('right', 320, 20);
-  down = new Arrow('down', 120, 20);
-  up = new Arrow('up', 220, 20);
-
 }
 
 
@@ -39,16 +34,33 @@ function draw() {
     var randSpawn = Math.floor(Math.random() * 4);
     newArrow = new Arrow(directions[randSpawn]);
   }
+  
   if (newArrow != null) {
-    newArrow.drawArrow(200, 200);
-
+    newArrow.drawArrow(newArrow.x, newArrow.y);
+    newArrow.y -= speed;
   }
+  
+  
 
 }
 
 class Arrow {
   constructor(type) {
     this.type = type;
+    if (type == 'left') {
+      this.x = 20;
+      
+    } else if (type == 'down') {
+      this.x = 120;
+      
+    } else if (type == 'up') {
+      this.x = 220;
+      
+    } else {
+      this.x = 320;
+    }
+      
+    this.y = 400;
   }
 
   drawArrow(x, y) {
