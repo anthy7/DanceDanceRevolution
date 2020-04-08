@@ -9,6 +9,11 @@ var directions = ["left", "down", "up", "right"];
 newArrow = null;
 
 speed = 10;
+arrowIsOnHitbox(slidespace, arrow);
+score = 0;
+combo = 0;
+congrats = "miss";
+
 
 function setup() {
   createCanvas(400, 400);
@@ -34,13 +39,13 @@ function draw() {
     var randSpawn = Math.floor(Math.random() * 4);
     newArrow = new Arrow(directions[randSpawn]);
   }
-  
+
   if (newArrow != null) {
     newArrow.drawArrow(newArrow.x, newArrow.y);
     newArrow.y -= speed;
   }
-  
-  
+
+
 
 }
 
@@ -49,18 +54,19 @@ class Arrow {
     this.type = type;
     if (type == 'left') {
       this.x = 20;
-      
+
     } else if (type == 'down') {
       this.x = 120;
-      
+
     } else if (type == 'up') {
       this.x = 220;
-      
+
     } else {
       this.x = 320;
     }
-      
+
     this.y = 400;
+    this.size = 60;
   }
 
   drawArrow(x, y) {
@@ -126,6 +132,9 @@ class SlideSpace {
     this.colour = colour;
     this.x = x;
     this.y = y;
+    this.hitboxX = x + 10;
+    this.hitboxY = y + 10;
+    this.hitboxSize = 80;
   }
 
   drawSlideSpace() {
@@ -135,7 +144,20 @@ class SlideSpace {
 
   drawHitBox(colour) {
     fill(color(colour));
-    rect(this.x + 10, this.y + 10, 80, 80);
+    rect(this.hitboxX, this.hitboxY, this.hitboxSize, this.hitboxSize);
+  }
+  
+  arrowIsOnHitbox(arrow) {
+    if (arrow.y >= this.hitboxY && arrow.y <= (this.hitboxY + this.hitboxSize)) {
+      score += 200;
+      combo++;
+      congrats = "perfect";
+    
+    } else if (arrow.y >= (this.hitboxY - 10) && arrow.y <= (this.hitboxY + hitboxSize + 10) {
+      
+    }
+    
   }
 
 }
+
