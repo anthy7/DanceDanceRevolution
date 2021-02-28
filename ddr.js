@@ -1,42 +1,70 @@
-var slideColours = ["#ff7070", "#fff07d", "#a6f0ff", "#a6ffaa"];
+// IN COLLABORATION WITH MIRELA TOMICIC!
 
+// EXAMPLE BPMS
+// BUTTERFLY - 135
+// SNOW HALATION - 173
+// DOTA - 144
+// K.K. CRUISIN' - 84
+const WIDTH = 400
+const HEIGHT = 450
+const BPM = 84
+const FRAMERATE = 30
+
+var slideColours = ["#ff7070", "#fff07d", "#a6f0ff", "#a6ffaa"];
 var hitboxColours = ["#b84040", "#f7d034", "#59baff", "#189e5f"];
 
-var slideSpaces = [];
+var arrowColours = {
+  hit: "#000000",
+  missed: "red",
+  active: "#FFFFFF"
+}
 
-var directions = ["left", "down", "up", "right"];
+var slideSpaces = ["", "", "", ""];
+
+const LEFT_TYPE = 0
+const DOWN_TYPE = 1
+const UP_TYPE = 2
+const RIGHT_TYPE = 3
+
+const SPEED = 18
 
 function randomArrowType() {
-  return directions[Math.floor(Math.random() * 4)];
-}
-function createArrowPair(type, frame) {
-  return [type, frame];
+  return Math.floor(Math.random() * 4);
 }
 
-// ARROW QUEUE IMPLEMENTATION
-var arrowQueue = new Queue();
-for (j = 0; j < 50; j++) {
-  arrowPair = createArrowPair(randomArrowType(), Math.floor(Math.random() * 60*50));
-  arrowQueue.enqueue(arrowPair);
+function spawnArrow() {
+  var direction = randomArrowType();
+  while(slideSpaces[direction].arrow !== null) {
+    direction = randomArrowType();
+  }
+  arrow = new Arrow(direction);
+  slideSpaces[direction].setArrow(arrow);
 }
 
-newArrow = null;
-arrowQueue = new ArrowQueue();
-
-speed = 10;
+var song;
+var hit;
+var arrowRate;
 score = 0;
 combo = 0;
-congrats = "miss";
+congrats = "";
 
+function preload() {
+  song = loadSound("assets/cruisin.mp3");
+  hit = loadSound("assets/hit.mp3")
+}
 
 function setup() {
-  createCanvas(400, 400);
+  song.setVolume(0.5)
+  song.loop()
+  
+  createCanvas(WIDTH, HEIGHT);
   stroke(255);
   strokeWeight(3);
-  frameRate(60);
+  frameRate(FRAMERATE);
+  arrowRate = Math.floor((FRAMERATE * 60)/BPM)
 
   for (i = 0; i < 4; i++) {
-    slideSpaces[i] = new SlideSpace(slideColours[i], i * 100, 0, 100, 400);
+    slideSpaces[i] = new SlideSpace(slideColours[i], hitboxColours[i], i * (WIDTH/4), 0);
   }
   
   textSize(30);
@@ -44,65 +72,51 @@ function setup() {
 
 
 function draw() {
-  background(220);
   
-  console.log(frameCount);
   for (i = 0; i < 4; i++) {
     slideSpaces[i].drawSlideSpace();
-    slideSpaces[i].drawHitBox(hitboxColours[i]);
   }
 
-  if (frameCount % 60 == 0) {
-    var randSpawn = randomArrowType();
-    newArrow = new Arrow(directions[randSpawn], "#FFFFFF");
-  }
-
-  if (newArrow != null) {
-    newArrow.drawArrow(newArrow.x, newArrow.y);
-    newArrow.y -= speed;
-    
-    if (newArrow.colour === "#FFFFFF" && newArrow.y < -30) {
-      combo = 0;
-      congrats = "miss";
+  // Spawn arrow at arrow rate
+  if (frameCount % arrowRate === 0) {
+    spawnArrow();
+    if (Math.random() < 0.3){ //30% chance
+      spawnArrow();
     }
+    
   }
-  
-  
   
   fill(0);
   text(score, 50, 380);
   text(combo, 200, 380);
   text(congrats, 300, 380);
   
-  
 }
 
 // ARROW IMPLEMENTATION
 class Arrow {
-  constructor(type, colour) {
+  constructor(type) {
     this.type = type;
-    if (type == 'left') {
+    if (type == LEFT_TYPE) {
       this.x = 20;
 
-    } else if (type == 'down') {
+    } else if (type == DOWN_TYPE) {
       this.x = 120;
 
-    } else if (type == 'up') {
+    } else if (type == UP_TYPE) {
       this.x = 220;
 
     } else {
       this.x = 320;
     }
-
-    this.y = 400;
-    this.size = 60;
-    this.colour = colour;
+    this.y = HEIGHT;
+    this.status = "active"
   }
 
   drawArrow(x, y) {
-    fill(color(this.colour));
+    fill(arrowColours[this.status]);
     // Left arrow
-    if (this.type == 'left') {
+    if (this.type == LEFT_TYPE) {
       beginShape();
       vertex(x + 60, y + 20);
       vertex(x + 30, y + 20);
@@ -115,7 +129,7 @@ class Arrow {
       endShape(CLOSE);
 
       // Down arrow
-    } else if (this.type == 'down') {
+    } else if (this.type == DOWN_TYPE) {
       beginShape();
       vertex(x + 20, y);
       vertex(x + 40, y);
@@ -128,7 +142,7 @@ class Arrow {
 
 
       // Up arrow
-    } else if (this.type == 'up') {
+    } else if (this.type == UP_TYPE) {
       beginShape();
       vertex(x + 20, y + 60);
 
@@ -153,16 +167,31 @@ class Arrow {
       vertex(x, y + 40);
       endShape(CLOSE);
     }
-
+  }
+  
+  moveArrow() {
+    this.y -= SPEED;
+    this.drawArrow(this.x, this.y);
+    
+    if (this.y < -30) {
+      if (this.status == "active") {
+        combo = 0;
+        congrats = "miss"
+      }
+      return false;
+    }
+    return true;
   }
 }
 
 // SLIDESPACE IMPLEMENTATION
 class SlideSpace {
-  constructor(colour, x, y) {
+  constructor(colour, hitboxColour, x, y) {
     this.colour = colour;
+    this.hitboxColour = hitboxColour;
     this.x = x;
     this.y = y;
+    this.arrow = null;
     this.hitboxX = x + 10;
     this.hitboxY = y + 10;
     this.hitboxSize = 80;
@@ -170,52 +199,50 @@ class SlideSpace {
 
   drawSlideSpace() {
     fill(color(this.colour));
-    rect(this.x, this.y, 100, 400);
-  }
-
-  drawHitBox(colour) {
-    fill(color(colour));
+    rect(this.x, this.y, WIDTH/4, HEIGHT);
+    fill(color(this.hitboxColour));
     rect(this.hitboxX, this.hitboxY, this.hitboxSize, this.hitboxSize);
+    if(this.arrow != null && !this.arrow.moveArrow()) {
+      this.arrow = null;
+    }
   }
   
-  arrowIsOnHitbox(arrow) {
-    if (arrow.x != (this.x + 20)) {
-      combo = 0;
-      congrats = "miss";
+  setArrow(arrow) {
+    this.arrow = arrow;
+  }
+  
+  arrowIsOnHitbox() {
+    if (this.arrow === null || this.arrow.status != "active") {
       return;
-      
-    } else if (arrow.y >= this.hitboxY && arrow.y <= (this.hitboxY + this.hitboxSize)) {
+    }
+    if (this.arrow.y >= this.hitboxY && (this.arrow.y+60)<= (this.hitboxY + this.hitboxSize)) {
       score += 200;
       combo++;
       congrats = "perfect";
-       arrow.colour = "#000000";
-    
-    } else if (arrow.y >= (this.hitboxY - 30) && arrow.y <= (this.hitboxY + this.hitboxSize + 30)) {
+      this.arrow.status = "hit"
+    } else if (this.arrow.y + 30 >= this.hitboxY && (this.arrow.y+30)<= (this.hitboxY + this.hitboxSize)) {
       score += 100;
       combo++;
       congrats = "good";
-      arrow.colour = "#000000";
+      this.arrow.status = "hit";
     } else {
       combo = 0;
       congrats = "miss";
-      arrow.colour = "#000000";
+      this.arrow.status = "missed"
     }
-    
   }
-
 }
 
 // ARROW INPUT IMPLEMENTATION
 function keyPressed() {
+  hit.play();
   if (keyCode === LEFT_ARROW) {
-    slideSpaces[0].arrowIsOnHitbox(newArrow)
+    slideSpaces[LEFT_TYPE].arrowIsOnHitbox();
   } else if (keyCode === DOWN_ARROW) {
-    slideSpaces[1].arrowIsOnHitbox(newArrow);
+    slideSpaces[DOWN_TYPE].arrowIsOnHitbox();
   } else if (keyCode === UP_ARROW) {
-    slideSpaces[2].arrowIsOnHitbox(newArrow);
+    slideSpaces[UP_TYPE].arrowIsOnHitbox();
   } else if (keyCode === RIGHT_ARROW) {
-    slideSpaces[3].arrowIsOnHitbox(newArrow);
-    
+    slideSpaces[RIGHT_TYPE].arrowIsOnHitbox();
   }
 }
-
